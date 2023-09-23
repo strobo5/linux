@@ -74,6 +74,7 @@ extern struct platform_driver dw_mipi_dsi_rockchip_driver;
 extern struct platform_driver inno_hdmi_driver;
 extern struct platform_driver rockchip_dp_driver;
 extern struct platform_driver rockchip_lvds_driver;
+extern struct platform_driver rockchip_tve_driver;
 extern struct platform_driver vop_platform_driver;
 extern struct platform_driver rk3066_hdmi_driver;
 extern struct platform_driver vop2_platform_driver;
