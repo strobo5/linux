@@ -821,7 +821,7 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	vdisplay = crtc_state->adjusted_mode.crtc_vdisplay;
 	if (crtc_state->adjusted_mode.flags & DRM_MODE_FLAG_INTERLACE)
 		vdisplay *= 2;
-	DRM_DEV_INFO(plane->dev->dev, "vdisplay: %d\n", vdisplay);
+	DRM_DEV_INFO(plane->dev->dev, "crtc_state->adjusted_mode.crtc_vdisplay *2 = : %d\n", vdisplay);
 
 	ret = drm_atomic_helper_check_plane_state(new_plane_state, crtc_state,
 						  min_scale, max_scale,
@@ -1483,6 +1483,10 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 		VOP_REG_SET(vop, common, p2i_en, 1);
 		vtotal += vtotal + 1;
 		act_end = vact_end_f1;
+		DRM_DEV_INFO(vop->dev, "vact_st = %d\n", vact_st);
+		DRM_DEV_INFO(vop->dev, "vact_st_f1 = %d\n", vact_st_f1);
+		DRM_DEV_INFO(vop->dev, "vact_end = %d\n", vact_end);
+		DRM_DEV_INFO(vop->dev, "vact_end_f1 = %d\n", vact_end_f1);
 	} else {
 		VOP_REG_SET(vop, common, dsp_interlace, 0);
 		VOP_REG_SET(vop, common, p2i_en, 0);
@@ -1495,11 +1499,10 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 	VOP_REG_SET(vop, intr, line_flag_num[0], act_end);
 	VOP_REG_SET(vop, intr, line_flag_num[1],
 		     act_end - us_to_vertical_line(adjusted_mode, for_ddr_freq));
+	DRM_DEV_INFO(vop->dev, "line_flag_num[0] set to: %d\n", act_end);
+	DRM_DEV_INFO(vop->dev, "line_flag_num[1] set to: %d\n", act_end - us_to_vertical_line(adjusted_mode, for_ddr_freq));
 
 	VOP_REG_SET(vop, modeset, vtotal_pw, (vtotal << 16) | vsync_len);
-
-	VOP_REG_SET(vop, common, core_dclk_div,
-		     !!(adjusted_mode->flags & DRM_MODE_FLAG_DBLCLK));
 
 	clk_set_rate(vop->dclk, adjusted_mode->clock * 1000);
 
@@ -1609,6 +1612,20 @@ static void vop_crtc_atomic_flush(struct drm_crtc *crtc,
 	s = to_rockchip_crtc_state(crtc->state);
 	VOP_AFBC_SET(vop, enable, s->enable_afbc);
 	vop_cfg_done(vop);
+#if 0
+	/*
+	 * rk322x and rk332x odd-even field will mistake when in interlace mode.
+	 * we must switch to frame effect before switch screen and switch to
+	 * field effect after switch screen complete.
+	 */
+	if (VOP_MAJOR(vop->data->version) == 3 &&
+	    (VOP_MINOR(vop->data->version) == 7 || VOP_MINOR(vop->data->version) == 8)) {
+		if (!s->mode_update && VOP_REG_GET(vop, output, reg_done_frm))
+			VOP_REG_SET(vop, output, reg_done_frm, 0);
+	} else {
+		VOP_REG_SET(vop, output, reg_done_frm, 0);
+	}
+#endif // if 0
 
 	spin_unlock(&vop->reg_lock);
 
