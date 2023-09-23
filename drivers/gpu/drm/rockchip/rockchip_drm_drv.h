@@ -26,6 +26,7 @@ struct iommu_domain;
 
 struct rockchip_crtc_state {
 	struct drm_crtc_state base;
+	struct drm_tv_connector_state *tv_state;
 	int output_type;
 	int output_mode;
 	int output_bpc;

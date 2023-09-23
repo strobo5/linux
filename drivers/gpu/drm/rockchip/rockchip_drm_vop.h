@@ -231,6 +231,8 @@ struct vop_data {
 	u64 feature;
 };
 
+#define CVBS_PAL_VDISPLAY		288
+
 /* interrupt define */
 #define DSP_HOLD_VALID_INTR		(1 << 0)
 #define FS_INTR				(1 << 1)
