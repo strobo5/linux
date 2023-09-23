@@ -3,17 +3,21 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/hdmi.h>
+#include <linux/media-bus-format.h>
 #include <linux/mutex.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/of_device.h>
+#include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 
-#include <drm/drmP.h>
+#include <uapi/linux/videodev2.h>
+
 #include <drm/drm_atomic_helper.h>
+
+#include <drm/drm_bridge.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_of.h>
-
-#include <uapi/linux/videodev2.h>
+#include <drm/drm_probe_helper.h>
 
 #include "rockchip_drm_drv.h"
 #include "rockchip_drm_tve.h"
@@ -517,7 +521,7 @@ static int rockchip_tve_bind(struct device *dev, struct device *master,
 	check_uboot_logo(tve);
 	tve->tv_format = TVOUT_CVBS_PAL;
 	encoder = &tve->encoder.encoder;
-	encoder->possible_crtcs = rockchip_drm_of_find_possible_crtcs(drm_dev,
+	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm_dev,
 								      dev->of_node);
 	dev_dbg(tve->dev, "possible_crtc:%d\n", encoder->possible_crtcs);
 
