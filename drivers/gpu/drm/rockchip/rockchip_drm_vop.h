@@ -80,7 +80,10 @@ struct vop_modeset {
 	struct vop_reg hpost_st_end;
 	struct vop_reg vtotal_pw;
 	struct vop_reg vact_st_end;
+	struct vop_reg vact_st_end_f1;
+	struct vop_reg vs_st_end_f1;
 	struct vop_reg vpost_st_end;
+	struct vop_reg vpost_st_end_f1;
 };
 
 struct vop_output {
@@ -112,6 +115,9 @@ struct vop_output {
 struct vop_common {
 	struct vop_reg cfg_done;
 	struct vop_reg dsp_blank;
+	struct vop_reg dsp_interlace;
+	struct vop_reg core_dclk_div;
+	struct vop_reg p2i_en;
 	struct vop_reg data_blank;
 	struct vop_reg pre_dither_down;
 	struct vop_reg dither_down_sel;

@@ -1036,8 +1036,11 @@ static const struct vop_modeset rk3328_modeset = {
 	.hact_st_end = VOP_REG(RK3328_DSP_HACT_ST_END, 0x1fff1fff, 0),
 	.vtotal_pw = VOP_REG(RK3328_DSP_VTOTAL_VS_END, 0x1fff1fff, 0),
 	.vact_st_end = VOP_REG(RK3328_DSP_VACT_ST_END, 0x1fff1fff, 0),
+	.vact_st_end_f1 = VOP_REG(RK3328_DSP_VACT_ST_END_F1, 0x1fff1fff, 0),
+	.vs_st_end_f1 = VOP_REG(RK3328_DSP_VS_ST_END_F1, 0x1fff1fff, 0),
 	.hpost_st_end = VOP_REG(RK3328_POST_DSP_HACT_INFO, 0x1fff1fff, 0),
 	.vpost_st_end = VOP_REG(RK3328_POST_DSP_VACT_INFO, 0x1fff1fff, 0),
+	.vpost_st_end_f1 = VOP_REG(RK3328_POST_DSP_VACT_INFO_F1, 0x1fff1fff, 0),
 };
 
 static const struct vop_output rk3328_output = {
@@ -1073,6 +1076,9 @@ static const struct vop_common rk3328_common = {
 	.pre_dither_down = VOP_REG(RK3328_DSP_CTRL1, 0x1, 1),
 	.dither_up = VOP_REG(RK3328_DSP_CTRL1, 0x1, 6),
 	.dsp_blank = VOP_REG(RK3328_DSP_CTRL0, 0x3, 18),
+	.core_dclk_div = VOP_REG(RK3328_DSP_CTRL0, 0x1, 4),
+	.dsp_interlace = VOP_REG(RK3328_DSP_CTRL0, 0x1, 10),
+	.p2i_en = VOP_REG(RK3328_DSP_CTRL0, 0x1, 5),
 	.out_mode = VOP_REG(RK3328_DSP_CTRL0, 0xf, 0),
 	.cfg_done = VOP_REG_SYNC(RK3328_REG_CFG_DONE, 0x1, 0),
 };

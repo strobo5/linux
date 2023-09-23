@@ -804,6 +804,7 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	struct drm_framebuffer *fb = new_plane_state->fb;
 	struct vop_win *vop_win = to_vop_win(plane);
 	const struct vop_win_data *win = vop_win->data;
+	u16 vdisplay;
 	int ret;
 	int min_scale = win->phy->scl ? FRAC_16_16(1, 8) :
 					DRM_PLANE_NO_SCALING;
@@ -817,6 +818,10 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 							crtc);
 	if (WARN_ON(!crtc_state))
 		return -EINVAL;
+	vdisplay = crtc_state->adjusted_mode.crtc_vdisplay;
+	if (crtc_state->adjusted_mode.flags & DRM_MODE_FLAG_INTERLACE)
+		vdisplay *= 2;
+	DRM_DEV_INFO(plane->dev->dev, "vdisplay: %d\n", vdisplay);
 
 	ret = drm_atomic_helper_check_plane_state(new_plane_state, crtc_state,
 						  min_scale, max_scale,
@@ -1326,6 +1331,10 @@ static void vop_crtc_atomic_begin(struct drm_crtc *crtc,
 		vop_crtc_gamma_set(vop, crtc, old_crtc_state);
 }
 
+static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
+{
+	return us * mode->clock / mode->htotal / 1000;
+}
 static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_atomic_state *state)
 {
@@ -1346,6 +1355,9 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 	u16 vact_st = adjusted_mode->vtotal - adjusted_mode->vsync_start;
 	u16 vact_end = vact_st + vdisplay;
 	uint32_t pin_pol, val;
+	int act_end;
+	bool interlaced = !!(adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
+	int for_ddr_freq = 0;
 	int dither_bpc = s->output_bpc ? s->output_bpc : 10;
 	int ret;
 
@@ -1358,6 +1370,10 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 	mutex_lock(&vop->vop_lock);
 
 	WARN_ON(vop->event);
+
+	DRM_DEV_INFO(vop->dev, "Update mode to %dx%d%s, type: %d\n",
+		     hdisplay, vdisplay, interlaced ? "i" : "p",
+		     s->output_type);
 
 	ret = vop_enable(crtc, old_state);
 	if (ret) {
@@ -1401,6 +1417,7 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 		VOP_REG_SET(vop, output, dp_en, 1);
 		break;
 	case DRM_MODE_CONNECTOR_TV:
+		DRM_DEV_INFO(vop->dev, "vdisplay: %d\n", vdisplay);
 		if (vdisplay == CVBS_PAL_VDISPLAY)
 			VOP_REG_SET(vop, output, tve_sw_mode, 1);
 		else
@@ -1447,13 +1464,42 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 	VOP_REG_SET(vop, modeset, hact_st_end, val);
 	VOP_REG_SET(vop, modeset, hpost_st_end, val);
 
-	VOP_REG_SET(vop, modeset, vtotal_pw, (vtotal << 16) | vsync_len);
 	val = vact_st << 16;
 	val |= vact_end;
 	VOP_REG_SET(vop, modeset, vact_st_end, val);
 	VOP_REG_SET(vop, modeset, vpost_st_end, val);
 
-	VOP_REG_SET(vop, intr, line_flag_num[0], vact_end);
+	if (adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) {
+		u16 vact_st_f1 = vtotal + vact_st + 1;
+		u16 vact_end_f1 = vact_st_f1 + vdisplay;
+
+		val = vact_st_f1 << 16 | vact_end_f1;
+		VOP_REG_SET(vop, modeset, vact_st_end_f1, val);
+		VOP_REG_SET(vop, modeset, vpost_st_end_f1, val);
+
+		val = vtotal << 16 | (vtotal + vsync_len);
+		VOP_REG_SET(vop, modeset, vs_st_end_f1, val);
+		VOP_REG_SET(vop, common, dsp_interlace, 1);
+		VOP_REG_SET(vop, common, p2i_en, 1);
+		vtotal += vtotal + 1;
+		act_end = vact_end_f1;
+	} else {
+		VOP_REG_SET(vop, common, dsp_interlace, 0);
+		VOP_REG_SET(vop, common, p2i_en, 0);
+		act_end = vact_end;
+	}
+
+	if (VOP_MAJOR(vop->data->version) == 3 &&
+	    (VOP_MINOR(vop->data->version) == 2 || VOP_MINOR(vop->data->version) == 8))
+		for_ddr_freq = 1000;
+	VOP_REG_SET(vop, intr, line_flag_num[0], act_end);
+	VOP_REG_SET(vop, intr, line_flag_num[1],
+		     act_end - us_to_vertical_line(adjusted_mode, for_ddr_freq));
+
+	VOP_REG_SET(vop, modeset, vtotal_pw, (vtotal << 16) | vsync_len);
+
+	VOP_REG_SET(vop, common, core_dclk_div,
+		     !!(adjusted_mode->flags & DRM_MODE_FLAG_DBLCLK));
 
 	clk_set_rate(vop->dclk, adjusted_mode->clock * 1000);
 
