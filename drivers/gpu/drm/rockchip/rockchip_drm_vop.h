@@ -101,6 +101,12 @@ struct vop_output {
 	struct vop_reg mipi_en;
 	struct vop_reg mipi_dual_channel_en;
 	struct vop_reg rgb_en;
+	struct vop_reg tve_dclk_en;
+	struct vop_reg tve_dclk_pol;
+	struct vop_reg tve_sw_mode;
+	struct vop_reg sw_uv_offset_en;
+	struct vop_reg sw_genlock;
+	struct vop_reg sw_dac_sel;
 };
 
 struct vop_common {
