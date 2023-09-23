@@ -41,8 +41,17 @@ static const struct drm_display_mode cvbs_mode[] = {
 #define tve_dac_writel(offset, v)   writel_relaxed(v, tve->vdacbase + (offset))
 #define tve_dac_readl(offset)	readl_relaxed(tve->vdacbase + (offset))
 
-#define connector_to_tve(x) container_of(x, struct rockchip_tve, connector)
-#define encoder_to_tve(x) container_of(x, struct rockchip_tve, encoder)
+// https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/drivers/gpu/drm/rockchip/rockchip_lvds.c?id=540b8f271e53362a308f6bf288d38b630cf3fbd2
+static inline struct rockchip_tve *connector_to_tve(struct drm_connector *connector)
+{
+	return container_of(connector, struct rockchip_tve, connector);
+}
+static inline struct rockchip_tve *encoder_to_tve(struct drm_encoder *encoder)
+{
+	struct rockchip_encoder *rkencoder = to_rockchip_encoder(encoder);
+
+	return container_of(rkencoder, struct rockchip_tve, encoder);
+}
 
 static int
 rockchip_tve_get_modes(struct drm_connector *connector)
@@ -75,7 +84,7 @@ static struct drm_encoder *rockchip_tve_best_encoder(struct drm_connector
 {
 	struct rockchip_tve *tve = connector_to_tve(connector);
 
-	return &tve->encoder;
+	return &tve->encoder.encoder;
 }
 
 static void rockchip_encoder_destroy(struct drm_encoder *encoder)
@@ -507,7 +516,7 @@ static int rockchip_tve_bind(struct device *dev, struct device *master,
 	mutex_init(&tve->suspend_lock);
 	check_uboot_logo(tve);
 	tve->tv_format = TVOUT_CVBS_PAL;
-	encoder = &tve->encoder;
+	encoder = &tve->encoder.encoder;
 	encoder->possible_crtcs = rockchip_drm_of_find_possible_crtcs(drm_dev,
 								      dev->of_node);
 	dev_dbg(tve->dev, "possible_crtc:%d\n", encoder->possible_crtcs);
@@ -561,10 +570,10 @@ static void rockchip_tve_unbind(struct device *dev, struct device *master,
 	struct rockchip_tve *tve = dev_get_drvdata(dev);
 
 	rockchip_drm_unregister_sub_dev(&tve->sub_dev);
-	rockchip_tve_encoder_disable(&tve->encoder);
+	rockchip_tve_encoder_disable(&tve->encoder.encoder);
 
 	drm_connector_cleanup(&tve->connector);
-	drm_encoder_cleanup(&tve->encoder);
+	drm_encoder_cleanup(&tve->encoder.encoder);
 
 	pm_runtime_disable(dev);
 }

@@ -138,7 +138,7 @@ struct rockchip_tve {
 	struct device *dev;
 	struct drm_device *drm_dev;
 	struct drm_connector connector;
-	struct drm_encoder encoder;
+	struct rockchip_encoder encoder;
 
 	u32 tv_format;
 	void __iomem			*regbase;
