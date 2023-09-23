@@ -250,9 +250,12 @@ struct vop_data {
 #define FS_INTR				(1 << 1)
 #define LINE_FLAG_INTR			(1 << 2)
 #define BUS_ERROR_INTR			(1 << 3)
+#define LINE_FLAG1_INTR			(1 << 6)
+#define FS_FIELD_INTR				(1 << 15)
 
 #define INTR_MASK			(DSP_HOLD_VALID_INTR | FS_INTR | \
-					 LINE_FLAG_INTR | BUS_ERROR_INTR)
+					 LINE_FLAG_INTR | BUS_ERROR_INTR | LINE_FLAG1_INTR | \
+					 FS_FIELD_INTR)
 
 #define DSP_HOLD_VALID_INTR_EN(x)	((x) << 4)
 #define FS_INTR_EN(x)			((x) << 5)

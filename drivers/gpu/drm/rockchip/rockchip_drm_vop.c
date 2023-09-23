@@ -1156,8 +1156,14 @@ static int vop_crtc_enable_vblank(struct drm_crtc *crtc)
 
 	spin_lock_irqsave(&vop->irq_lock, flags);
 
-	VOP_INTR_SET_TYPE(vop, clear, FS_INTR, 1);
-	VOP_INTR_SET_TYPE(vop, enable, FS_INTR, 1);
+
+	if (VOP_MAJOR(vop->data->version) == 3 && VOP_MINOR(vop->data->version) >= 7) {
+		VOP_INTR_SET_TYPE(vop, clear, FS_FIELD_INTR, 1);
+		VOP_INTR_SET_TYPE(vop, enable, FS_FIELD_INTR, 1);
+	} else {
+		VOP_INTR_SET_TYPE(vop, clear, FS_INTR, 1);
+		VOP_INTR_SET_TYPE(vop, enable, FS_INTR, 1);
+	}
 
 	spin_unlock_irqrestore(&vop->irq_lock, flags);
 
@@ -1174,7 +1180,11 @@ static void vop_crtc_disable_vblank(struct drm_crtc *crtc)
 
 	spin_lock_irqsave(&vop->irq_lock, flags);
 
-	VOP_INTR_SET_TYPE(vop, enable, FS_INTR, 0);
+	if (VOP_MAJOR(vop->data->version) == 3 && VOP_MINOR(vop->data->version) >= 7) {
+		VOP_INTR_SET_TYPE(vop, enable, FS_FIELD_INTR, 0);
+	} else {
+		VOP_INTR_SET_TYPE(vop, enable, FS_INTR, 0);
+	}
 
 	spin_unlock_irqrestore(&vop->irq_lock, flags);
 }
@@ -1520,7 +1530,11 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 
 static bool vop_fs_irq_is_pending(struct vop *vop)
 {
-	return VOP_INTR_GET_TYPE(vop, status, FS_INTR);
+	if (VOP_MAJOR(vop->data->version) == 3 && VOP_MINOR(vop->data->version) >= 7) {
+		return VOP_INTR_GET_TYPE(vop, status, FS_FIELD_INTR);
+	} else {
+		return VOP_INTR_GET_TYPE(vop, status, FS_INTR);
+	}
 }
 
 static void vop_wait_for_irq_handler(struct vop *vop)
@@ -1862,10 +1876,10 @@ static irqreturn_t vop_isr(int irq, void *data)
 		ret = IRQ_HANDLED;
 	}
 
-	if (active_irqs & FS_INTR) {
+	if ((active_irqs & FS_INTR) || (active_irqs & FS_FIELD_INTR)) {
 		drm_crtc_handle_vblank(crtc);
 		vop_handle_vblank(vop);
-		active_irqs &= ~FS_INTR;
+		active_irqs &= ~(FS_INTR | FS_FIELD_INTR);
 		ret = IRQ_HANDLED;
 	}
 

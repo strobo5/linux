@@ -738,9 +738,10 @@ static const int rk3368_vop_intrs[] = {
 	FS_INTR,
 	0, 0,
 	LINE_FLAG_INTR,
-	0,
+	LINE_FLAG1_INTR,
 	BUS_ERROR_INTR,
-	0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	FS_FIELD_INTR,
 	DSP_HOLD_VALID_INTR,
 };
 
