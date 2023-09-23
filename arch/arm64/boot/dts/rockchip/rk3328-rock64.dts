@@ -398,6 +398,10 @@
 	status = "okay";
 };
 
+&tve {
+	status = "okay";
+};
+
 &vop_mmu {
 	status = "okay";
 };
